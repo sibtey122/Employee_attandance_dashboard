@@ -1,0 +1,319 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Attendance desk</title>
+<style>
+:root{
+  --paper:#f4f6f8; --card:#ffffff; --ink:#16212e; --muted:#5b6b7b; --line:#d9e0e7;
+  --accent:#0f5c8c; --accent-ink:#ffffff; --good:#1c7c54; --warn:#b26a00; --bad:#b3261e;
+  --good-bg:#e3f3ec; --warn-bg:#fdf0d9; --bad-bg:#fbe5e3; --info-bg:#e1eef7;
+  --font:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root{--paper:#10171f; --card:#18222d; --ink:#e7edf3; --muted:#93a3b3; --line:#2a3846;
+  --accent:#5aa9dc; --accent-ink:#08141e; --good:#58c496; --warn:#e5a53d; --bad:#f08178;
+  --good-bg:#143427; --warn-bg:#3a2b10; --bad-bg:#3d1b18; --info-bg:#15293a;}
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:var(--font);background:var(--paper);color:var(--ink);font-size:15px;line-height:1.45}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.app{display:grid;grid-template-columns:220px 1fr;min-height:100%}
+aside{background:var(--card);border-right:1px solid var(--line);padding:20px 14px;display:flex;flex-direction:column;gap:6px}
+aside h1{font-size:18px;margin:0 8px 14px;letter-spacing:.2px}
+nav button{display:block;width:100%;text-align:left;padding:9px 12px;border:0;border-radius:6px;background:none;cursor:pointer;color:var(--muted)}
+nav button:hover{background:var(--paper)}
+nav button[aria-current=page]{background:var(--info-bg);color:var(--accent);font-weight:600}
+.conn{margin-top:auto;padding:10px 8px 0;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+.conn input{width:100%;margin:6px 0;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--paper)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--muted);margin-right:6px}
+.dot.ok{background:var(--good)} .dot.down{background:var(--bad)}
+main{padding:26px 30px;max-width:1100px;width:100%}
+h2{margin:0 0 4px;font-size:22px} .sub{margin:0 0 20px;color:var(--muted)}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:18px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+input,select{padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--paper);min-width:150px}
+.btn{padding:9px 16px;border-radius:6px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);cursor:pointer;font-weight:600}
+.btn.ghost{background:none;color:var(--accent)}
+.btn.out{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.btn:disabled{opacity:.5;cursor:default}
+.punch{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
+.punch .btn{padding:22px;font-size:18px}
+.msg{padding:10px 12px;border-radius:6px;margin-top:14px;font-size:14px}
+.msg.ok{background:var(--good-bg);color:var(--good)} .msg.err{background:var(--bad-bg);color:var(--bad)}
+.msg.info{background:var(--info-bg);color:var(--accent)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-weight:600;color:var(--muted);font-size:13px}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tbody tr.click{cursor:pointer} tbody tr.click:hover{background:var(--paper)}
+.scroll{overflow-x:auto}
+.chip{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:600}
+.chip.PRESENT,.chip.WFH,.chip.ON_DUTY{background:var(--good-bg);color:var(--good)}
+.chip.ABSENT{background:var(--bad-bg);color:var(--bad)} .chip.LEAVE{background:var(--warn-bg);color:var(--warn)}
+.tag{font-size:12px;color:var(--warn);margin-left:6px}
+.pager{display:flex;gap:10px;align-items:center;margin-top:12px;color:var(--muted);font-size:14px}
+.tabs{display:flex;gap:4px;margin-bottom:14px;flex-wrap:wrap}
+.tabs button{padding:7px 14px;border:1px solid var(--line);border-radius:99px;background:none;cursor:pointer;color:var(--muted)}
+.tabs button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:6px}
+.stat{border:1px solid var(--line);border-radius:8px;padding:12px}
+.stat b{display:block;font-size:24px;font-variant-numeric:tabular-nums} .stat span{color:var(--muted);font-size:13px}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);padding:22px;max-width:560px;width:calc(100% - 30px)}
+dialog::backdrop{background:rgba(10,18,26,.55)}
+dialog h3{margin:0 0 4px} .hist{margin:14px 0 0;padding:0;list-style:none;font-size:13px;color:var(--muted)}
+.hist li{padding:8px 0;border-top:1px solid var(--line)}
+.legend{display:flex;gap:16px;font-size:13px;color:var(--muted);margin:6px 0}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.empty{color:var(--muted);padding:14px 4px}
+@media(max-width:760px){.app{grid-template-columns:1fr} aside{flex-direction:row;flex-wrap:wrap;align-items:center}
+ nav{display:flex;flex-wrap:wrap;gap:4px} nav button{width:auto} .conn{width:100%;margin-top:6px} main{padding:18px 14px}}
+@media(prefers-reduced-motion:no-preference){.msg{animation:pop .18s ease-out}@keyframes pop{from{opacity:0;transform:translateY(-3px)}}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <h1>Attendance desk</h1>
+    <nav id="nav">
+      <button data-view="punch">Punch in / out</button>
+      <button data-view="records">Records</button>
+      <button data-view="employees">Employees</button>
+      <button data-view="analytics">Analytics</button>
+    </nav>
+    <div class="conn">
+      <div><span class="dot" id="dot"></span><span id="connText">Checking…</span></div>
+      <input id="base" value="http://localhost:8000" aria-label="API address">
+      <button class="btn ghost" id="reconnect" style="width:100%;padding:6px">Reconnect</button>
+    </div>
+  </aside>
+  <main id="main"></main>
+</div>
+
+<dialog id="dlg"></dialog>
+
+<script>
+"use strict";
+/* ---------- helpers ---------- */
+const $ = (s, r=document) => r.querySelector(s);
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const base = () => $("#base").value.replace(/\/+$/,"");
+const IST_MIN = 330;
+
+async function api(method, path, {query, body} = {}) {
+  const qs = query ? "?" + new URLSearchParams(Object.entries(query).filter(([,v]) => v !== "" && v != null)) : "";
+  let res;
+  try {
+    res = await fetch(base() + path + qs, {method, headers: body ? {"Content-Type":"application/json"} : {}, body: body ? JSON.stringify(body) : undefined});
+  } catch { throw new Error("Cannot reach the API. Is the server running at " + base() + "?"); }
+  let data = null;
+  try { data = await res.json(); } catch {}
+  if (!res.ok) {
+    let d = data && data.detail;
+    if (Array.isArray(d)) d = d.map(e => (e.loc ? e.loc.slice(1).join(".") + ": " : "") + e.msg).join("; ");
+    throw new Error(d || ("Request failed (" + res.status + ")"));
+  }
+  return data;
+}
+const fmtTime = ms => ms == null ? "–" : new Intl.DateTimeFormat("en-IN", {timeZone:"Asia/Kolkata", day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit", second:"2-digit", hour12:false}).format(new Date(ms));
+const toInput = ms => { if (ms == null) return ""; const d = new Date(ms + IST_MIN*60000); return d.toISOString().slice(0,16); };       // IST wall clock
+const fromInput = v => { if (!v) return null; const [d,t] = v.split("T"); const [y,m,da] = d.split("-").map(Number); const [h,mi] = t.split(":").map(Number); return Date.UTC(y,m-1,da,h,mi) - IST_MIN*60000; };
+const chip = s => `<span class="chip ${esc(s)}">${esc(s)}</span>`;
+const note = (cls, text) => `<div class="msg ${cls}" role="status">${esc(text)}</div>`;
+const thisMonth = () => new Date(Date.now() + IST_MIN*60000).toISOString().slice(0,7);
+const today = () => new Date(Date.now() + IST_MIN*60000).toISOString().slice(0,10);
+
+let employees = [];
+async function loadEmployees() {
+  employees = []; let page = 1, total = 0;
+  do { const r = await api("GET", "/employees", {query:{page, page_size:100}}); employees.push(...r.items); total = r.total; page++; } while (employees.length < total);
+}
+const empOptions = (withAll=false) => (withAll ? '<option value="">All employees</option>' : "") +
+  employees.map(e => `<option value="${esc(e.emp_code)}">${esc(e.emp_code)} – ${esc(e.name)}</option>`).join("");
+const deptOptions = () => [...new Set(employees.map(e => e.department))].sort().map(d => `<option>${esc(d)}</option>`).join("");
+
+/* ---------- connection ---------- */
+async function checkHealth() {
+  try { await api("GET", "/health"); $("#dot").className = "dot ok"; $("#connText").textContent = "Connected"; await loadEmployees(); return true; }
+  catch (e) { $("#dot").className = "dot down"; $("#connText").textContent = "Not connected"; return false; }
+}
+
+/* ---------- views ---------- */
+const views = {};
+function show(view) {
+  localStorage.setItem("view", view);
+  document.querySelectorAll("#nav button").forEach(b => {
+    if (b.dataset.view === view) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
+  });
+  views[view]($("#main"));
+}
+
+/* Punch */
+views.punch = main => {
+  main.innerHTML = `<h2>Punch in / out</h2><p class="sub">Record the current time for an employee. Times are saved in IST.</p>
+  <div class="panel">
+    <div class="row">
+      <label>Employee<select id="pEmp">${empOptions()}</select></label>
+      <label>Work type<select id="pStatus"><option value="PRESENT">Present (office)</option><option value="WFH">Work from home</option><option value="ON_DUTY">On duty</option></select></label>
+    </div>
+    <div class="punch"><button class="btn" id="pIn">Punch in</button><button class="btn out" id="pOut">Punch out</button></div>
+    <div id="pMsg"></div>
+  </div>`;
+  const act = async (path, body) => {
+    $("#pMsg").innerHTML = "";
+    try { const r = await api("POST", path, {body}); $("#pMsg").innerHTML = note("ok", path.endsWith("in") ? "Punched in." : "Punched out.") + recordCard(r); }
+    catch (e) { $("#pMsg").innerHTML = note("err", e.message); }
+  };
+  $("#pIn").onclick = () => act("/attendance/punch-in", {emp_code:$("#pEmp").value, status:$("#pStatus").value});
+  $("#pOut").onclick = () => act("/attendance/punch-out", {emp_code:$("#pEmp").value});
+  if (!employees.length) $("#pMsg").innerHTML = note("info", "No employees yet. Add one under Employees.");
+};
+function recordCard(r) {
+  return `<div class="stats">
+    <div class="stat"><b>${esc(r.date)}</b><span>${chip(r.status)}</span></div>
+    <div class="stat"><b>${fmtTime(r.punch_in).split(", ").pop()}</b><span>Punched in</span></div>
+    <div class="stat"><b>${r.punch_out ? fmtTime(r.punch_out).split(", ").pop() : "–"}</b><span>Punched out</span></div>
+    <div class="stat"><b>${r.work_hours ?? "–"}</b><span>Work hours</span></div>
+    <div class="stat"><b>${r.late_minutes}</b><span>Late minutes</span></div>
+    <div class="stat"><b>${r.overtime_minutes}</b><span>Overtime minutes</span></div></div>`;
+}
+
+/* Records */
+let recState = {page:1, emp_code:"", date_from:"", date_to:"", status:""};
+views.records = main => {
+  main.innerHTML = `<h2>Records</h2><p class="sub">Click a row to correct it.</p>
+  <div class="panel"><div class="row">
+    <label>Employee<select id="fEmp">${empOptions(true)}</select></label>
+    <label>From<input type="date" id="fFrom"></label><label>To<input type="date" id="fTo"></label>
+    <label>Status<select id="fStatus"><option value="">Any</option>${["PRESENT","WFH","ON_DUTY","ABSENT","LEAVE"].map(s=>`<option>${s}</option>`).join("")}</select></label>
+    <button class="btn" id="fGo">Search</button></div></div>
+  <div class="panel"><div id="recOut"></div></div>`;
+  $("#fEmp").value = recState.emp_code; $("#fFrom").value = recState.date_from; $("#fTo").value = recState.date_to; $("#fStatus").value = recState.status;
+  $("#fGo").onclick = () => { recState = {page:1, emp_code:$("#fEmp").value, date_from:$("#fFrom").value, date_to:$("#fTo").value, status:$("#fStatus").value}; loadRecords(); };
+  loadRecords();
+};
+async function loadRecords() {
+  const out = $("#recOut"); out.innerHTML = note("info", "Loading…");
+  try {
+    const r = await api("GET", "/attendance", {query:{...recState, page_size:15}});
+    if (!r.items.length) { out.innerHTML = '<div class="empty">No records match these filters.</div>'; return; }
+    const pages = Math.max(1, Math.ceil(r.total / r.page_size));
+    out.innerHTML = `<div class="scroll"><table><thead><tr><th>Date</th><th>Employee</th><th>Status</th><th>In</th><th>Out</th><th class="num">Hours</th><th class="num">Late</th><th class="num">Overtime</th><th>Half day</th></tr></thead><tbody>` +
+      r.items.map((x,i) => `<tr class="click" data-i="${i}" tabindex="0"><td>${esc(x.date)}</td><td>${esc(x.emp_code)}</td><td>${chip(x.status)}</td><td>${fmtTime(x.punch_in)}</td><td>${fmtTime(x.punch_out)}</td>
+      <td class="num">${x.work_hours ?? "–"}</td><td class="num">${x.late_minutes}</td><td class="num">${x.overtime_minutes}</td><td>${x.half_day ? "Yes" : ""}${x.history.length ? '<span class="tag">corrected</span>' : ""}</td></tr>`).join("") +
+      `</tbody></table></div><div class="pager"><button class="btn ghost" id="prev" ${r.page<=1?"disabled":""}>Previous</button><span>Page ${r.page} of ${pages} · ${r.total} records</span><button class="btn ghost" id="next" ${r.page>=pages?"disabled":""}>Next</button></div>`;
+    $("#prev").onclick = () => { recState.page--; loadRecords(); }; $("#next").onclick = () => { recState.page++; loadRecords(); };
+    out.querySelectorAll("tr.click").forEach(tr => { const open = () => openCorrection(r.items[tr.dataset.i]); tr.onclick = open; tr.onkeydown = e => { if (e.key === "Enter") open(); }; });
+  } catch (e) { out.innerHTML = note("err", e.message); }
+}
+function openCorrection(rec) {
+  const d = $("#dlg");
+  d.innerHTML = `<h3>Correct ${esc(rec.emp_code)} · ${esc(rec.date)}</h3><p class="sub" style="margin-bottom:12px">Change only what is wrong. Late, hours and overtime are recalculated.</p>
+  <div class="row">
+    <label>Status<select id="cStatus">${["PRESENT","WFH","ON_DUTY","ABSENT","LEAVE"].map(s=>`<option ${s===rec.status?"selected":""}>${s}</option>`).join("")}</select></label>
+    <label>Punch in (IST)<input type="datetime-local" id="cIn" value="${toInput(rec.punch_in)}"></label>
+    <label>Punch out (IST)<input type="datetime-local" id="cOut" value="${toInput(rec.punch_out)}"></label>
+    <label>Reason<input id="cReason" placeholder="At least 5 characters" style="min-width:260px"></label>
+    <label>Corrected by<input id="cBy" placeholder="Your name"></label>
+  </div><div id="cMsg"></div>
+  <div class="row" style="margin-top:14px"><button class="btn" id="cSave">Save correction</button><button class="btn ghost" id="cClose">Close</button></div>
+  <ul class="hist">${rec.history.length ? rec.history.slice().reverse().map(h => `<li><b>${esc(h.by)}</b> · ${fmtTime(h.at)}<br>${esc(h.reason)}<br>${Object.entries(h.changes).map(([k,v]) => esc(k) + ": " + esc(/^punch/.test(k) ? fmtTime(v.from) + " → " + fmtTime(v.to) : v.from + " → " + v.to)).join("<br>")}</li>`).join("") : "<li>No corrections yet.</li>"}</ul>`;
+  $("#cClose").onclick = () => d.close();
+  $("#cSave").onclick = async () => {
+    const body = {reason:$("#cReason").value, regularized_by:$("#cBy").value};
+    const st = $("#cStatus").value; if (st !== rec.status) body.status = st;
+    if (st !== "ABSENT" && st !== "LEAVE") {
+      const i = fromInput($("#cIn").value), o = fromInput($("#cOut").value);
+      if (i != null && i !== rec.punch_in) body.punch_in = i;
+      if (o != null && o !== rec.punch_out) body.punch_out = o;
+    }
+    try { await api("PATCH", `/attendance/${encodeURIComponent(rec.emp_code)}/${rec.date}`, {body}); d.close(); loadRecords(); }
+    catch (e) { $("#cMsg").innerHTML = note("err", e.message); }
+  };
+  d.showModal();
+}
+
+/* Employees */
+views.employees = async main => {
+  main.innerHTML = `<h2>Employees</h2><p class="sub">Everyone is identified by their employee code.</p>
+  <div class="panel"><div class="row">
+    <label>Code<input id="nCode" placeholder="EMP0007"></label><label>Name<input id="nName"></label><label>Email<input id="nMail" type="email"></label>
+    <label>Department<input id="nDept" list="depts"></label><datalist id="depts">${deptOptions()}</datalist>
+    <label>Shift start<input id="nS" type="time" value="09:30"></label><label>Shift end<input id="nE" type="time" value="18:30"></label>
+    <label>Joined on<input id="nJ" type="date" value="${today()}"></label><button class="btn" id="nAdd">Add employee</button></div><div id="nMsg"></div></div>
+  <div class="panel"><div id="eList"></div></div>`;
+  $("#nAdd").onclick = async () => {
+    try { await api("POST", "/employees", {body:{emp_code:$("#nCode").value.trim(), name:$("#nName").value, email:$("#nMail").value, department:$("#nDept").value,
+      shift_start:$("#nS").value, shift_end:$("#nE").value, joined_on:$("#nJ").value}});
+      await loadEmployees(); views.employees(main); }
+    catch (e) { $("#nMsg").innerHTML = note("err", e.message); }
+  };
+  $("#eList").innerHTML = employees.length ? `<div class="scroll"><table><thead><tr><th>Code</th><th>Name</th><th>Department</th><th>Shift</th><th>Joined</th></tr></thead><tbody>` +
+    employees.map(e => `<tr><td>${esc(e.emp_code)}</td><td>${esc(e.name)}</td><td>${esc(e.department)}</td><td>${esc(e.shift_start)}–${esc(e.shift_end)}</td><td>${esc(e.joined_on)}</td></tr>`).join("") + "</tbody></table></div>"
+    : '<div class="empty">No employees yet. Add the first one above.</div>';
+};
+
+/* Analytics */
+let anTab = "summary";
+views.analytics = main => {
+  main.innerHTML = `<h2>Analytics</h2><p class="sub">Monthly numbers come straight from MongoDB aggregations.</p>
+  <div class="tabs" id="anTabs">${[["summary","Department summary"],["late","Late leaderboard"],["trend","Daily trend"],["monthly","One employee"]].map(([k,t]) => `<button data-t="${k}" aria-pressed="${k===anTab}">${t}</button>`).join("")}</div>
+  <div class="panel" id="anBody"></div>`;
+  $("#anTabs").onclick = e => { const t = e.target.dataset.t; if (t) { anTab = t; views.analytics(main); } };
+  tabs[anTab]($("#anBody"));
+};
+const tabs = {};
+const run = (btn, out, fn) => { btn.onclick = async () => { out.innerHTML = note("info", "Loading…"); try { out.innerHTML = await fn(); } catch (e) { out.innerHTML = note("err", e.message); } }; btn.click(); };
+const table = (heads, rows) => rows.length ? `<div class="scroll"><table><thead><tr>${heads.map(h => `<th class="${h[1] ? "num" : ""}">${h[0]}</th>`).join("")}</tr></thead><tbody>${rows.map(r => `<tr>${r.map((c,i) => `<td class="${heads[i][1] ? "num" : ""}">${c ?? "–"}</td>`).join("")}</tr>`).join("")}</tbody></table></div>` : '<div class="empty">No data for this selection.</div>';
+
+tabs.summary = el => {
+  el.innerHTML = `<div class="row"><label>Month<input type="month" id="aM" value="${thisMonth()}"></label><label>Department<select id="aD"><option value="">All</option>${deptOptions()}</select></label><button class="btn" id="aGo">Show</button></div><div id="aOut" style="margin-top:14px"></div>`;
+  run($("#aGo"), $("#aOut"), async () => { const r = await api("GET", "/analytics/departments/summary", {query:{month:$("#aM").value, department:$("#aD").value}});
+    return table([["Department"],["Headcount",1],["Present days",1],["Avg hours",1],["Late count",1],["Late minutes",1],["Leave",1],["On duty",1]],
+      r.items.map(i => [esc(i.department), i.headcount, i.present_days, i.avg_work_hours, i.late_count, i.total_late_minutes, i.leave_count, i.on_duty_count])); });
+};
+tabs.late = el => {
+  el.innerHTML = `<div class="row"><label>Month<input type="month" id="aM" value="${thisMonth()}"></label><label>Show top<input type="number" id="aL" value="10" min="1" max="50" style="min-width:90px"></label><label>Department<select id="aD"><option value="">All</option>${deptOptions()}</select></label><button class="btn" id="aGo">Show</button></div><div id="aOut" style="margin-top:14px"></div>`;
+  run($("#aGo"), $("#aOut"), async () => { const r = await api("GET", "/analytics/leaderboard/late", {query:{month:$("#aM").value, limit:$("#aL").value, department:$("#aD").value}});
+    return table([["Rank",1],["Code"],["Name"],["Department"],["Late minutes",1],["Late days",1]], r.items.map(i => [i.rank, esc(i.emp_code), esc(i.name), esc(i.department), i.total_late_minutes, i.late_count])) +
+      (r.items.length ? '<p class="sub" style="margin-top:10px">Employees with the same total share a rank, so the list can be longer than the number you asked for.</p>' : ""); });
+};
+tabs.monthly = el => {
+  el.innerHTML = `<div class="row"><label>Employee<select id="aE">${empOptions()}</select></label><label>Month<input type="month" id="aM" value="${thisMonth()}"></label><button class="btn" id="aGo">Show</button></div><div id="aOut" style="margin-top:14px"></div>`;
+  run($("#aGo"), $("#aOut"), async () => { const r = await api("GET", `/analytics/employees/${encodeURIComponent($("#aE").value)}/monthly`, {query:{month:$("#aM").value}});
+    const s = (v, l) => `<div class="stat"><b>${v ?? "–"}</b><span>${l}</span></div>`;
+    return `<div class="stats">${s(r.attendance_pct == null ? null : r.attendance_pct + "%", "Attendance")}${s(r.present_days, "Days present")}${s(r.working_days, "Working days")}${s(r.leave_days, "Leave days")}${s(r.late_count, "Late days")}${s(r.total_late_minutes, "Late minutes")}${s(r.total_overtime_minutes, "Overtime minutes")}</div>`; });
+};
+tabs.trend = el => {
+  const to = today(), from = new Date(Date.parse(to) - 20*86400000).toISOString().slice(0,10);
+  el.innerHTML = `<div class="row"><label>Department<select id="aD">${deptOptions()}</select></label><label>From<input type="date" id="aF" value="${from}"></label><label>To<input type="date" id="aT" value="${to}"></label><button class="btn" id="aGo">Show</button></div><div id="aOut" style="margin-top:14px"></div>`;
+  run($("#aGo"), $("#aOut"), async () => { const r = await api("GET", `/analytics/departments/${encodeURIComponent($("#aD").value)}/trend`, {query:{from:$("#aF").value, to:$("#aT").value}});
+    return trendChart(r.items) + table([["Date"],["Day"],["Headcount",1],["Present",1],["Late",1],["Rate",1],["7-day avg",1]],
+      r.items.map(i => [i.date, i.is_working_day ? "Working" : "Weekend", i.headcount, i.present_count, i.late_count, i.attendance_rate == null ? null : (i.attendance_rate*100).toFixed(1) + "%", i.moving_avg_7d == null ? null : (i.moving_avg_7d*100).toFixed(1) + "%"])); });
+};
+function trendChart(items) {
+  const W = 720, H = 190, pad = 28, n = items.length, bw = (W - pad*2) / n, y = v => H - pad - v * (H - pad*2);
+  const bars = items.map((i,k) => i.attendance_rate == null ? "" : `<rect x="${pad + k*bw + bw*.15}" y="${y(i.attendance_rate)}" width="${bw*.7}" height="${H - pad - y(i.attendance_rate)}" fill="var(--accent)" opacity=".35"><title>${i.date}: ${(i.attendance_rate*100).toFixed(1)}%</title></rect>`).join("");
+  const pts = items.map((i,k) => i.moving_avg_7d == null ? null : [pad + k*bw + bw/2, y(i.moving_avg_7d)]).filter(Boolean);
+  const line = pts.length ? `<polyline fill="none" stroke="var(--ink)" stroke-width="2" points="${pts.map(p => p.join(",")).join(" ")}"/>` : "";
+  const grid = [0,.5,1].map(v => `<line x1="${pad}" x2="${W-pad}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="2" y="${y(v)+4}" font-size="11" fill="var(--muted)">${v*100}%</text>`).join("");
+  return `<div class="legend"><span><i style="background:var(--accent);opacity:.45"></i>Daily attendance</span><span><i style="background:var(--ink)"></i>7-day average</span></div>
+    <div class="scroll"><svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Attendance rate per day with a 7-day average line" style="min-width:520px">${grid}${bars}${line}</svg></div>`;
+}
+
+/* ---------- start ---------- */
+$("#nav").onclick = e => { if (e.target.dataset.view) show(e.target.dataset.view); };
+$("#reconnect").onclick = async () => { localStorage.setItem("base", base()); await checkHealth(); show(localStorage.getItem("view") || "punch"); };
+(async () => {
+  $("#base").value = localStorage.getItem("base") || $("#base").value;
+  await checkHealth();
+  show(localStorage.getItem("view") || "punch");
+})();
+</script>
+</body>
+</html>
